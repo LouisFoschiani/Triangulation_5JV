@@ -7,19 +7,21 @@ public class MeshDataProcessor : MonoBehaviour
     private Matrix4x4 covarianceMatrix;
     private List<Vector3> vertices;
     private List<Vector3> barycenters = new List<Vector3>();
-    private List<string> segmentNames = new List<string> { "arm_l", "arm_r", "Buste", "feet_l", "feet_r", "head", "leg_lower_l", "leg_lower_r", "leg_upper_l", "leg_upper_r", "pelvis" };
+    private List<string> segmentNames = new List<string> { "arm_l", "arm_r", "buste", "feet_l", "feet_r", "head", "leg_lower_l", "leg_lower_r", "leg_upper_l", "leg_upper_r", "pelvis" };
 
     void Start()
     {
-        Mesh mesh = GetComponent<MeshFilter>().mesh; // Récupérer le mesh de l'objet
-        vertices = new List<Vector3>(mesh.vertices); // Récupérer les vertices du mesh
+        Mesh mesh = GetComponent<MeshFilter>().mesh; 
+        vertices = new List<Vector3>(mesh.vertices);
 
         Vector3 barycenter = CalculateBarycenter(vertices);
         List<Vector3> centeredVertices = CenterVertices(vertices, barycenter);
         covarianceMatrix = CalculateCovarianceMatrix(centeredVertices);
+        
         Debug.DrawRay(barycenter, Vector3.up, Color.red, duration: 100f);
-        //Debug.Log("Matrice de covariance: \n" + MatrixToString(covarianceMatrix));
         barycenters.Add(CalculateBarycenter(vertices));
+        //Debug.Log("vertices" + vertices);
+
 
     }   
     public List<string> GetSegmentNames()
@@ -35,15 +37,21 @@ public class MeshDataProcessor : MonoBehaviour
     {
         return barycenters;
     }
-    Vector3 CalculateBarycenter(List<Vector3> vertices)
+    Vector3 CalculateBarycenter(List<Vector3> segmentVertices)
     {
+        if (segmentVertices == null || segmentVertices.Count == 0)
+        {
+            return Vector3.zero;
+        }
+
         Vector3 sum = Vector3.zero;
-        foreach (Vector3 vertex in vertices)
+        foreach (Vector3 vertex in segmentVertices)
         {
             sum += vertex;
         }
-        return sum / vertices.Count;
+        return sum / segmentVertices.Count;
     }
+
 
     public int GetSegmentIndex(string segmentName)
     {

@@ -6,14 +6,16 @@ public class ACP : MonoBehaviour
 {
     public MeshDataProcessor meshDataProcessor; // Référence à MeshDataProcessor
     private List<Vector3> eigenvectors = new List<Vector3>();
+    
+    
     void Start()
     {
         if (meshDataProcessor != null)
         {
             Matrix4x4 covarianceMatrix = meshDataProcessor.GetCovarianceMatrix();
             (float eigenvalue, Vector3 eigenvector) = PowerIteration(covarianceMatrix, 10000, 0.00001f); // Augmentation du nombre d'itérations et réduction de la tolérance
-            Debug.Log("Valeur propre dominante: " + eigenvalue);
-            Debug.Log("Vecteur propre associé: " + eigenvector);
+            //Debug.Log("Valeur propre dominante: " + eigenvalue);
+            //Debug.Log("Vecteur propre associé: " + eigenvector);
             
             List<Vector3> vertices = meshDataProcessor.GetVertices();
             List<Vector3> projectedPoints = ProjectVertices(vertices, eigenvector);
@@ -91,6 +93,5 @@ public class ACP : MonoBehaviour
                 writer.WriteLine(point.x + "," + point.y + "," + point.z);
             }
         }
-        Debug.Log("Points projetés sauvegardés dans : " + filePath);
     }
 }
