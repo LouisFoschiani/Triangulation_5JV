@@ -8,7 +8,7 @@ public class ACP : MonoBehaviour
     private List<Vector3> eigenvectors = new List<Vector3>();
     
     
-    void Start()
+    public void init()
     {
         if (meshDataProcessor != null)
         {

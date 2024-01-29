@@ -9,21 +9,22 @@ public class MeshDataProcessor : MonoBehaviour
     private List<Vector3> barycenters = new List<Vector3>();
     private List<string> segmentNames = new List<string> { "arm_l", "arm_r", "buste", "feet_l", "feet_r", "head", "leg_lower_l", "leg_lower_r", "leg_upper_l", "leg_upper_r", "pelvis" };
 
-    void Start()
+
+    public void init()
     {
-        Mesh mesh = GetComponent<MeshFilter>().mesh; 
-        vertices = new List<Vector3>(mesh.vertices);
+        Mesh mesh = GetComponent<MeshFilter>().mesh; // Récupérer le mesh de l'objet
+        vertices = new List<Vector3>(mesh.vertices); // Récupérer les vertices du mesh
 
         Vector3 barycenter = CalculateBarycenter(vertices);
         List<Vector3> centeredVertices = CenterVertices(vertices, barycenter);
         covarianceMatrix = CalculateCovarianceMatrix(centeredVertices);
         
         Debug.DrawRay(barycenter, Vector3.up, Color.red, duration: 100f);
+        //Debug.Log("Matrice de covariance: \n" + MatrixToString(covarianceMatrix));
         barycenters.Add(CalculateBarycenter(vertices));
-        //Debug.Log("vertices" + vertices);
+        //Debug.Log("Barycentre calculé pour " + mesh + ": " + barycenter);
 
-
-    }   
+    }
     public List<string> GetSegmentNames()
     {
         return segmentNames;
@@ -41,6 +42,7 @@ public class MeshDataProcessor : MonoBehaviour
     {
         if (segmentVertices == null || segmentVertices.Count == 0)
         {
+            Debug.LogError("Aucun vertex fourni pour calculer le barycentre.");
             return Vector3.zero;
         }
 

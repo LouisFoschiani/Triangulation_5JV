@@ -17,62 +17,81 @@ public class SkeletonBuilder : MonoBehaviour
 
     void Start()
     {
-        foreach (var processor in meshDataProcessor)
+
+        foreach (var meshData in meshDataProcessor)
         {
-            foreach (string segmentName in processor.GetSegmentNames())
+            meshData.init();
+        }
+        foreach (var acpData in acp)
+        {
+            acpData.init();
+        }
+        
+        if (meshDataProcessor != null && meshDataProcessor.Length > 0 && acp != null && acp.Length > 0)
+        {
+            foreach (var meshData in meshDataProcessor)
             {
-               //Debug.Log("Creating bone for segment: " + segmentName);
-                if (!processedSegmentNames.Contains(segmentName))
+                foreach (string segmentName in meshData.GetSegmentNames())
                 {
-                    CreateBone(segmentName);
-                    processedSegmentNames.Add(segmentName);
+                    CreateAndRepositionBone(segmentName);
                 }
             }
+ 
+            SetBoneHierarchy();
         }
-        SetBoneHierarchy();
     }
-
-
-    void CreateBone(string name)
+    void CreateAndRepositionBone(string segmentName)
     {
-        Vector3 position = CalculateBonePosition(name);
-        Quaternion orientation = CalculateBoneOrientation(name);
-
+        Vector3 position = CalculateBonePosition(segmentName);
+        Debug.Log("Position du barycentre pour " + segmentName + ": " + position);
+        Quaternion orientation = CalculateBoneOrientation(segmentName);
         GameObject bone = Instantiate(bonePrefab, position, orientation, transform);
-        if (bone == null)
+        if (bone != null)
         {
-            Debug.LogError("Failed to instantiate bone prefab for: " + name);
+            bone.name = segmentName + "_Bone";
+            bones[segmentName] = bone.transform;
+            //RepositionBone(segmentName);
         }
         else
         {
-            //Debug.Log("Creating bone: " + name);
-        }  
-        bone.name = name + "_Bone";
-        bones[name] = bone.transform;   
-       
+            Debug.LogError("Failed to instantiate bone prefab for: " + segmentName);
+        }
     }
     
+    void RepositionSegment(string segmentName, Vector3 newPosition, Quaternion newOrientation)
+    {
+        if (bones.TryGetValue(segmentName, out Transform boneTransform))
+        {
+            boneTransform.position = newPosition;
+            boneTransform.rotation = newOrientation;
+        }
+        else
+        {
+            Debug.LogError("Segment not found: " + segmentName);
+        }
+    }
+
     Vector3 CalculateBonePosition(string boneName)
     {
-        foreach (var processor in meshDataProcessor)
+        if (meshDataProcessor != null && meshDataProcessor.Length > 0)
         {
-            int index = processor.GetSegmentIndex(boneName);
-            Debug.Log("Processing bone: " + boneName + ", Index: " + index);
-
-            if (index != -1 && index < processor.GetBarycenters().Count)
+            int index = meshDataProcessor[0].GetSegmentIndex(boneName);
+            if (index != -1 && index < meshDataProcessor[0].GetBarycenters().Count)
             {
-                return processor.GetBarycenters()[index];
+                return meshDataProcessor[0].GetBarycenters()[index];
             }
             else
             {
-                Debug.LogError("Invalid index for bone: " + boneName + ", Index: " + index + ", Barycenters count: " + processor.GetBarycenters().Count);
+                //Debug.LogError("Invalid index for bone: " + boneName + ", Index: " + index + ", Barycenters count: " + meshDataProcessor[0].GetBarycenters().Count);
+                return Vector3.zero; // Retourne une position par défaut en cas d'erreur
             }
         }
-        Debug.LogError("Bone name not found in any MeshDataProcessor: " + boneName);
-        return Vector3.zero;
+        else
+        {
+            Debug.LogError("MeshDataProcessor is not properly initialized.");
+            return Vector3.zero; // Retourne une position par défaut si MeshDataProcessor n'est pas initialisé
+        }
     }
-
-
 
     Quaternion CalculateBoneOrientation(string boneName)
     {
@@ -124,6 +143,41 @@ public class SkeletonBuilder : MonoBehaviour
         bones["arm_r"].parent = bones["buste"];
         bones["head"].parent = bones["buste"];
     }
+    
+    /*void RepositionBone(string segmentName)
+    {
+        int index = meshDataProcessor[0].GetSegmentIndex(segmentName);
+        if (index != -1 && index < acp[0].GetEigenvectors().Count)
+        {
+            Vector3 newPosition = meshDataProcessor[0].GetBarycenters()[index];
+            Vector3 eigenvector = acp[0].GetEigenvectors()[index];
+            Quaternion newOrientation = Quaternion.FromToRotation(Vector3.up, eigenvector);
+            RepositionSegment(segmentName, newPosition, newOrientation);
+        }
+        else
+        {
+            Debug.LogError("Invalid index for repositioning bone: " + segmentName);
+        }
+    }
+    
+    void CreateBone(string name)
+    {
+        Vector3 position = CalculateBonePosition(name, name);
+        Quaternion orientation = CalculateBoneOrientation(name);
+
+        GameObject bone = Instantiate(bonePrefab, position, orientation, transform);
+        if (bone == null)
+        {
+            Debug.LogError("Failed to instantiate bone prefab for: " + name);
+        }
+        else
+        {
+            //Debug.Log("Creating bone: " + name);
+        }  
+        bone.name = name + "_Bone";
+        bones[name] = bone.transform;   
+       
+    }*/
 
 
 }
