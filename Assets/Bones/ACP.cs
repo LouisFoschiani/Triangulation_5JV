@@ -6,10 +6,11 @@ public class ACP : MonoBehaviour
 {
     public MeshDataProcessor meshDataProcessor; // Référence à MeshDataProcessor
     private List<Vector3> eigenvectors = new List<Vector3>();
-    
+    public bool IsInitialized { get; private set; }
     
     public void init()
     {
+        IsInitialized = true;
         if (meshDataProcessor != null)
         {
             Matrix4x4 covarianceMatrix = meshDataProcessor.GetCovarianceMatrix();
@@ -26,35 +27,30 @@ public class ACP : MonoBehaviour
         {
             Debug.LogError("MeshDataProcessor non attaché!");
         }
+        
     }
     public int GetSegmentIndex(string segmentName)
     {
-        // Supposons que meshDataProcessor est un champ public ou obtenu via FindObjectOfType, comme précédemment
         return meshDataProcessor.GetSegmentIndex(segmentName);
     }
     (float, Vector3) PowerIteration(Matrix4x4 matrix, int maxIterations, float tolerance)
     {
-        Vector3 b_k = Vector3.right; // Choisir un vecteur initial arbitraire
+        Vector3 b_k = Vector3.right;
+        Vector3 b_k1;
 
         for (int i = 0; i < maxIterations; i++)
         {
-            // Multiplication de la matrice par b_k
-            Vector3 b_k1 = MultiplyMatrixVector(matrix, b_k);
-
-            // Normalisation de b_k1
+            b_k1 = MultiplyMatrixVector(matrix, b_k);
             b_k1.Normalize();
 
-            // Vérifier la convergence
             if (Vector3.Distance(b_k, b_k1) < tolerance)
+            {
                 break;
+            }
 
             b_k = b_k1;
         }
-
-        // Calcul de la valeur propre
-        Vector3 matrixTimesEigenvector = MultiplyMatrixVector(matrix, b_k);
-        float eigenvalue = Vector3.Dot(matrixTimesEigenvector, b_k) / Vector3.Dot(b_k, b_k);
-
+        float eigenvalue = Vector3.Dot(MultiplyMatrixVector(matrix, b_k), b_k) / Vector3.Dot(b_k, b_k);
         return (eigenvalue, b_k);
     }
 

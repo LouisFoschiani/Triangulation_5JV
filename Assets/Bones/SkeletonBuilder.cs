@@ -7,7 +7,6 @@ public class SkeletonBuilder : MonoBehaviour
     private Dictionary<string, Transform> bones = new Dictionary<string, Transform>();
     private MeshDataProcessor[] meshDataProcessor;
     private ACP[] acp;
-    private HashSet<string> processedSegmentNames = new HashSet<string>(); 
 
     void Awake()
     {
@@ -17,167 +16,134 @@ public class SkeletonBuilder : MonoBehaviour
 
     void Start()
     {
-
-        foreach (var meshData in meshDataProcessor)
+        foreach (var processor in meshDataProcessor)
         {
-            meshData.init();
+            processor.init();
+            foreach (var barycenter in processor.worldBarycenters)
+            {
+                Debug.Log(processor.gameObject.name + " Barycentre mondial: " + barycenter);
+            }
         }
         foreach (var acpData in acp)
         {
             acpData.init();
         }
+        CreateBonesAndSetHierarchy();
         
-        if (meshDataProcessor != null && meshDataProcessor.Length > 0 && acp != null && acp.Length > 0)
+    }
+
+    void CreateBonesAndSetHierarchy()
+    {
+        CreateBone("pelvis");
+        CreateBone("buste");
+        foreach (var processor in meshDataProcessor)
         {
-            foreach (var meshData in meshDataProcessor)
+            foreach (string segmentName in processor.GetSegmentNames())
             {
-                foreach (string segmentName in meshData.GetSegmentNames())
+                if (!bones.ContainsKey(segmentName) && segmentName != "pelvis" && segmentName != "buste")
                 {
-                    CreateAndRepositionBone(segmentName);
+                    CreateBone(segmentName);
                 }
             }
- 
-            SetBoneHierarchy();
         }
+
+        SetBoneHierarchy();
     }
-    void CreateAndRepositionBone(string segmentName)
+
+    void CreateBone(string segmentName)
     {
+        // Obtenez le barycentre mondial pour la position du bone
         Vector3 position = CalculateBonePosition(segmentName);
-        Debug.Log("Position du barycentre pour " + segmentName + ": " + position);
+
+        // Calculez l'orientation du bone en utilisant les données ACP
         Quaternion orientation = CalculateBoneOrientation(segmentName);
-        GameObject bone = Instantiate(bonePrefab, position, orientation, transform);
+        Debug.Log("Indice de " + segmentName + " : " + meshDataProcessor[0].GetSegmentIndex(segmentName));
+
+        // Instanciez le bone avec la position et l'orientation correctes
+        GameObject bone = Instantiate(bonePrefab, position, orientation);
         if (bone != null)
         {
             bone.name = segmentName + "_Bone";
             bones[segmentName] = bone.transform;
-            //RepositionBone(segmentName);
         }
         else
         {
-            Debug.LogError("Failed to instantiate bone prefab for: " + segmentName);
-        }
-    }
-    
-    void RepositionSegment(string segmentName, Vector3 newPosition, Quaternion newOrientation)
-    {
-        if (bones.TryGetValue(segmentName, out Transform boneTransform))
-        {
-            boneTransform.position = newPosition;
-            boneTransform.rotation = newOrientation;
-        }
-        else
-        {
-            Debug.LogError("Segment not found: " + segmentName);
+            Debug.LogError("Échec de l'instanciation du bone pour : " + segmentName);
         }
     }
 
+
+    Transform DetermineBoneParent(string segmentName) {
+        switch (segmentName) {
+            case "leg_upper_l":
+            case "leg_upper_r":
+                return GameObject.Find("pelvis").transform; // Retrouvez le GameObject "pelvis" dans la scène et utilisez son transform
+            case "leg_lower_l":
+                return GameObject.Find("leg_upper_l_Bone").transform; // Le bone "leg_upper_l_Bone" est le parent
+            case "leg_lower_r":
+                return GameObject.Find("leg_upper_r_Bone").transform; // Le bone "leg_upper_r_Bone" est le parent
+            case "feet_l":
+                return GameObject.Find("leg_lower_l_Bone").transform; // Le bone "leg_lower_l_Bone" est le parent
+            case "feet_r":
+                return GameObject.Find("leg_lower_r_Bone").transform; // Le bone "leg_lower_r_Bone" est le parent
+            case "buste":
+                return GameObject.Find("pelvis").transform; // Le GameObject "pelvis" est le parent
+            case "arm_l":
+            case "arm_r":
+                return GameObject.Find("buste_Bone").transform; // Le bone "buste_Bone" est le parent
+            case "head":
+                return GameObject.Find("buste_Bone").transform; // Le bone "buste_Bone" est le parent
+            default:
+                return GameObject.Find("x_bot_v2").transform; // Si le segment n'est pas listé, utilisez un parent par défaut
+        }
+    }
+
+
     Vector3 CalculateBonePosition(string boneName)
     {
-        if (meshDataProcessor != null && meshDataProcessor.Length > 0)
+        foreach (var processor in meshDataProcessor)
         {
-            int index = meshDataProcessor[0].GetSegmentIndex(boneName);
-            if (index != -1 && index < meshDataProcessor[0].GetBarycenters().Count)
+            int index = processor.GetSegmentIndex(boneName);
+            //Debug.Log(processor.gameObject.name + " Index: " + index);
+            if (index != -1 && index < processor.worldBarycenters.Count)
             {
-                return meshDataProcessor[0].GetBarycenters()[index];
-            }
-            else
-            {
-                //Debug.LogError("Invalid index for bone: " + boneName + ", Index: " + index + ", Barycenters count: " + meshDataProcessor[0].GetBarycenters().Count);
-                return Vector3.zero; // Retourne une position par défaut en cas d'erreur
+                return processor.worldBarycenters[index]; // Utilisez directement le barycentre mondial
             }
         }
-        else
-        {
-            Debug.LogError("MeshDataProcessor is not properly initialized.");
-            return Vector3.zero; // Retourne une position par défaut si MeshDataProcessor n'est pas initialisé
-        }
+        return Vector3.zero;
     }
 
     Quaternion CalculateBoneOrientation(string boneName)
     {
+        // Implémentez la logique pour calculer l'orientation du bone
+        // Exemple basique :
         if (acp != null && acp.Length > 0)
         {
-            int index = acp[0].GetSegmentIndex(boneName); // Utilisez acp[0] pour accéder au premier élément du tableau
-
-            // Vérifier si l'index est valide avant d'accéder à la liste des vecteurs propres
-            if (index >= 0 && index < acp[0].GetEigenvectors().Count) 
+            int index = acp[0].GetSegmentIndex(boneName);
+            if (index >= 0 && index < acp[0].GetEigenvectors().Count)
             {
-                Vector3 eigenvector = acp[0].GetEigenvectors()[index]; 
+                Vector3 eigenvector = acp[0].GetEigenvectors()[index];
                 return Quaternion.FromToRotation(Vector3.up, eigenvector);
             }
-            else
-            {
-                //Debug.LogError("Invalid index for bone: " + boneName);
-                return Quaternion.identity; // Retourner une valeur par défaut ou une rotation nulle
-            }
         }
-        else
-        {
-            Debug.LogError("ACP is not properly initialized.");
-            return Quaternion.identity; // Retourner une valeur par défaut ou une rotation nulle
-        }
+        return Quaternion.identity;
     }
-
-
 
     void SetBoneHierarchy()
     {
-        //Debug.Log("Liste des os créés :");
-    
-        /*foreach (var pair in bones)
-        {
-            Debug.Log(pair.Key);
-        }*/
-
-        // Exemple de parentage des bones
+        // Configurer la hiérarchie des bones
+        // Exemple de configuration basique :
         bones["leg_upper_l"].parent = bones["pelvis"];
         bones["leg_lower_l"].parent = bones["leg_upper_l"];
         bones["feet_l"].parent = bones["leg_lower_l"];
-    
+
         bones["leg_upper_r"].parent = bones["pelvis"];
         bones["leg_lower_r"].parent = bones["leg_upper_r"];
         bones["feet_r"].parent = bones["leg_lower_r"];
-    
+
         bones["buste"].parent = bones["pelvis"];
         bones["arm_l"].parent = bones["buste"];
         bones["arm_r"].parent = bones["buste"];
         bones["head"].parent = bones["buste"];
     }
-    
-    /*void RepositionBone(string segmentName)
-    {
-        int index = meshDataProcessor[0].GetSegmentIndex(segmentName);
-        if (index != -1 && index < acp[0].GetEigenvectors().Count)
-        {
-            Vector3 newPosition = meshDataProcessor[0].GetBarycenters()[index];
-            Vector3 eigenvector = acp[0].GetEigenvectors()[index];
-            Quaternion newOrientation = Quaternion.FromToRotation(Vector3.up, eigenvector);
-            RepositionSegment(segmentName, newPosition, newOrientation);
-        }
-        else
-        {
-            Debug.LogError("Invalid index for repositioning bone: " + segmentName);
-        }
-    }
-    
-    void CreateBone(string name)
-    {
-        Vector3 position = CalculateBonePosition(name, name);
-        Quaternion orientation = CalculateBoneOrientation(name);
-
-        GameObject bone = Instantiate(bonePrefab, position, orientation, transform);
-        if (bone == null)
-        {
-            Debug.LogError("Failed to instantiate bone prefab for: " + name);
-        }
-        else
-        {
-            //Debug.Log("Creating bone: " + name);
-        }  
-        bone.name = name + "_Bone";
-        bones[name] = bone.transform;   
-       
-    }*/
-
-
 }

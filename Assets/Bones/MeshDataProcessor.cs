@@ -7,27 +7,52 @@ public class MeshDataProcessor : MonoBehaviour
     private Matrix4x4 covarianceMatrix;
     private List<Vector3> vertices;
     private List<Vector3> barycenters = new List<Vector3>();
-    private List<string> segmentNames = new List<string> { "arm_l", "arm_r", "buste", "feet_l", "feet_r", "head", "leg_lower_l", "leg_lower_r", "leg_upper_l", "leg_upper_r", "pelvis" };
-
+    public List<Vector3> worldBarycenters = new List<Vector3>();
+    private List<string> segmentNames = new List<string>
+    {
+        "pelvis",
+        "buste",
+        "head",
+        "leg_upper_l",
+        "leg_lower_l",
+        "feet_l",
+        "leg_upper_r",
+        "leg_lower_r",
+        "feet_r",
+        "arm_l",
+        "arm_r"
+    };
 
     public void init()
     {
-        Mesh mesh = GetComponent<MeshFilter>().mesh; // Récupérer le mesh de l'objet
-        vertices = new List<Vector3>(mesh.vertices); // Récupérer les vertices du mesh
+        MeshFilter meshFilter = GetComponent<MeshFilter>();
+        if (meshFilter == null || meshFilter.mesh == null)
+        {
+            Debug.LogError("MeshFilter ou Mesh est null.");
+            return;
+        }
+        Mesh mesh = meshFilter.mesh;
+        vertices = new List<Vector3>(mesh.vertices);
 
-        Vector3 barycenter = CalculateBarycenter(vertices);
-        List<Vector3> centeredVertices = CenterVertices(vertices, barycenter);
+        Vector3 localBarycenter = CalculateBarycenter(vertices);
+        List<Vector3> centeredVertices = CenterVertices(vertices, localBarycenter);
         covarianceMatrix = CalculateCovarianceMatrix(centeredVertices);
-        
-        Debug.DrawRay(barycenter, Vector3.up, Color.red, duration: 100f);
-        //Debug.Log("Matrice de covariance: \n" + MatrixToString(covarianceMatrix));
-        barycenters.Add(CalculateBarycenter(vertices));
-        //Debug.Log("Barycentre calculé pour " + mesh + ": " + barycenter);
 
+        Vector3 worldBarycenter = transform.TransformPoint(localBarycenter);
+        worldBarycenters.Add(worldBarycenter);
     }
+
     public List<string> GetSegmentNames()
     {
         return segmentNames;
+    }
+    void OnDrawGizmos()
+    {
+        Gizmos.color = Color.blue;
+        foreach (var barycenter in worldBarycenters)
+        {
+            Gizmos.DrawSphere(barycenter, 0.1f); // Ajustez la taille si nécessaire
+        }
     }
 
     public List<Vector3> GetVertices()
@@ -37,6 +62,10 @@ public class MeshDataProcessor : MonoBehaviour
     public List<Vector3> GetBarycenters()
     {
         return barycenters;
+    }
+    public List<Vector3> GetWorldBarycenters()
+    {
+        return worldBarycenters;
     }
     Vector3 CalculateBarycenter(List<Vector3> segmentVertices)
     {
