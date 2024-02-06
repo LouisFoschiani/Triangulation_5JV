@@ -32,6 +32,7 @@ public class ACP : MonoBehaviour
     public int GetSegmentIndex(string segmentName)
     {
         return meshDataProcessor.GetSegmentIndex(segmentName);
+        
     }
     (float, Vector3) PowerIteration(Matrix4x4 matrix, int maxIterations, float tolerance)
     {

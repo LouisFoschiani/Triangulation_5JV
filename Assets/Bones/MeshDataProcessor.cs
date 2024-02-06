@@ -40,6 +40,7 @@ public class MeshDataProcessor : MonoBehaviour
 
         Vector3 worldBarycenter = transform.TransformPoint(localBarycenter);
         worldBarycenters.Add(worldBarycenter);
+       
     }
 
     public List<string> GetSegmentNames()

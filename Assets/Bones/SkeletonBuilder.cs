@@ -6,8 +6,10 @@ public class SkeletonBuilder : MonoBehaviour
     public GameObject bonePrefab;
     private Dictionary<string, Transform> bones = new Dictionary<string, Transform>();
     private MeshDataProcessor[] meshDataProcessor;
+    private MeshDataProcessor processor;       
     private ACP[] acp;
 
+    public GameObject x_bot_v2;
     void Awake()
     {
         meshDataProcessor = FindObjectsOfType<MeshDataProcessor>();
@@ -19,85 +21,123 @@ public class SkeletonBuilder : MonoBehaviour
         foreach (var processor in meshDataProcessor)
         {
             processor.init();
-            foreach (var barycenter in processor.worldBarycenters)
-            {
-                Debug.Log(processor.gameObject.name + " Barycentre mondial: " + barycenter);
-            }
         }
         foreach (var acpData in acp)
         {
             acpData.init();
         }
+        // Create the base bones which do not depend on other bones
+        CreateBone("pelvis", x_bot_v2.transform);
+        CreateBone("buste", x_bot_v2.transform);
+
+        // Now create the rest of the bones
         CreateBonesAndSetHierarchy();
-        
+    
+        // After all bones are created, set up their hierarchy
+        SetBoneHierarchy();
     }
 
     void CreateBonesAndSetHierarchy()
     {
-        CreateBone("pelvis");
-        CreateBone("buste");
         foreach (var processor in meshDataProcessor)
         {
             foreach (string segmentName in processor.GetSegmentNames())
             {
-                if (!bones.ContainsKey(segmentName) && segmentName != "pelvis" && segmentName != "buste")
+                if (!bones.ContainsKey(segmentName))
                 {
-                    CreateBone(segmentName);
+                    Transform boneParent = DetermineBoneParent(segmentName);
+                    CreateBone(segmentName, boneParent);
                 }
             }
         }
 
-        SetBoneHierarchy();
+        // Ajustez la hiérarchie des bones pour connecter les segments inférieurs aux supérieurs
+        foreach (var boneKVP in bones)
+        {
+            Transform segmentMeshTransform = FindMeshSegment(boneKVP.Key);
+            if(segmentMeshTransform != null)
+            {
+                segmentMeshTransform.SetParent(boneKVP.Value, false); // Parentez le segment de mesh au bone
+            }
+        }
     }
 
-    void CreateBone(string segmentName)
+
+    void CreateBone(string segmentName, Transform meshSegmentTransform)
     {
-        // Obtenez le barycentre mondial pour la position du bone
         Vector3 position = CalculateBonePosition(segmentName);
-
-        // Calculez l'orientation du bone en utilisant les données ACP
         Quaternion orientation = CalculateBoneOrientation(segmentName);
-        Debug.Log("Indice de " + segmentName + " : " + meshDataProcessor[0].GetSegmentIndex(segmentName));
 
-        // Instanciez le bone avec la position et l'orientation correctes
+        // Crée le bone à la position et avec l'orientation calculées
         GameObject bone = Instantiate(bonePrefab, position, orientation);
-        if (bone != null)
+        bone.name = segmentName + "_Bone";
+
+        // Si meshSegmentTransform n'est pas null, parentez-le au bone
+        if (meshSegmentTransform != null)
         {
-            bone.name = segmentName + "_Bone";
-            bones[segmentName] = bone.transform;
+            // Mettez à jour la hiérarchie pour que le mesh soit l'enfant du bone
+            meshSegmentTransform.SetParent(bone.transform, false);
+            meshSegmentTransform.localPosition = Vector3.zero;
+            meshSegmentTransform.localRotation = Quaternion.identity;
+        
+            // Optionnellement, si le mesh doit être repositionné pour s'adapter à la position du bone
+            // meshSegmentTransform.position = position;
+            // meshSegmentTransform.rotation = orientation;
         }
         else
         {
-            Debug.LogError("Échec de l'instanciation du bone pour : " + segmentName);
+            Debug.LogError("Le GameObject pour le segment de mesh est introuvable: " + segmentName);
         }
+
+        bones[segmentName] = bone.transform;
     }
 
-
-    Transform DetermineBoneParent(string segmentName) {
-        switch (segmentName) {
+    Transform FindMeshSegment(string segmentName)
+    {
+        // Trouvez le GameObject qui représente le segment de mesh dans la scène
+        GameObject meshSegment = GameObject.Find(segmentName); // Assurez-vous que le nom correspond exactement
+        if (meshSegment != null)
+        {
+            return meshSegment.transform;
+        }
+        else
+        {
+            Debug.LogError("Segment de mesh introuvable pour: " + segmentName);
+            return null;
+        }
+    }
+    Transform DetermineBoneParent(string segmentName)
+    {
+        // Logique simplifiée pour déterminer le parent du bone
+        switch (segmentName)
+        {
+            case "pelvis":
+                return bones["pelvis_Bone"];
+            case "buste":                   
+                return bones["buste_Bone"]; 
             case "leg_upper_l":
+                return bones["leg_upper_l_Bone"];
             case "leg_upper_r":
-                return GameObject.Find("pelvis").transform; // Retrouvez le GameObject "pelvis" dans la scène et utilisez son transform
-            case "leg_lower_l":
-                return GameObject.Find("leg_upper_l_Bone").transform; // Le bone "leg_upper_l_Bone" est le parent
-            case "leg_lower_r":
-                return GameObject.Find("leg_upper_r_Bone").transform; // Le bone "leg_upper_r_Bone" est le parent
-            case "feet_l":
-                return GameObject.Find("leg_lower_l_Bone").transform; // Le bone "leg_lower_l_Bone" est le parent
-            case "feet_r":
-                return GameObject.Find("leg_lower_r_Bone").transform; // Le bone "leg_lower_r_Bone" est le parent
-            case "buste":
-                return GameObject.Find("pelvis").transform; // Le GameObject "pelvis" est le parent
-            case "arm_l":
-            case "arm_r":
-                return GameObject.Find("buste_Bone").transform; // Le bone "buste_Bone" est le parent
-            case "head":
-                return GameObject.Find("buste_Bone").transform; // Le bone "buste_Bone" est le parent
+                return bones["leg_upper_r_Bone"];
+            case "leg_lower_l":                     
+                return bones["leg_lower_l_Bone"];   
+            case "leg_lower_r":                     
+                return bones["leg_lower_r_Bone"];        
+            case "feet_l":                     
+                return bones["feet_l_Bone"];   
+            case "feet_r":                     
+                return bones["feet_r_Bone"];
+            case "arm_l":                    
+                return bones["arm_l_Bone"];  
+            case "arm_r":                    
+                return bones["arm_r_Bone"];  
+            case "head":                     
+                return bones["head_Bone"];   
             default:
-                return GameObject.Find("x_bot_v2").transform; // Si le segment n'est pas listé, utilisez un parent par défaut
+                return x_bot_v2.transform; // Retournez le transform racine si aucun autre parent n'est approprié
+          
         }
     }
-
 
     Vector3 CalculateBonePosition(string boneName)
     {
@@ -108,7 +148,7 @@ public class SkeletonBuilder : MonoBehaviour
             if (index != -1 && index < processor.worldBarycenters.Count)
             {
                 return processor.worldBarycenters[index]; // Utilisez directement le barycentre mondial
-            }
+            } 
         }
         return Vector3.zero;
     }
@@ -131,19 +171,14 @@ public class SkeletonBuilder : MonoBehaviour
 
     void SetBoneHierarchy()
     {
-        // Configurer la hiérarchie des bones
-        // Exemple de configuration basique :
-        bones["leg_upper_l"].parent = bones["pelvis"];
-        bones["leg_lower_l"].parent = bones["leg_upper_l"];
-        bones["feet_l"].parent = bones["leg_lower_l"];
-
-        bones["leg_upper_r"].parent = bones["pelvis"];
-        bones["leg_lower_r"].parent = bones["leg_upper_r"];
-        bones["feet_r"].parent = bones["leg_lower_r"];
-
-        bones["buste"].parent = bones["pelvis"];
-        bones["arm_l"].parent = bones["buste"];
-        bones["arm_r"].parent = bones["buste"];
-        bones["head"].parent = bones["buste"];
+        // Set up the hierarchy for the rest of the bones now that they all should exist
+        foreach (var boneName in bones.Keys)
+        {
+            Transform boneParent = DetermineBoneParent(boneName);
+            if(boneParent != null)
+            {
+                bones[boneName].SetParent(boneParent, false);
+            }
+        }
     }
 }
