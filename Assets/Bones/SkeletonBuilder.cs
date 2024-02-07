@@ -10,7 +10,7 @@ public class SkeletonBuilder : MonoBehaviour
     private MeshDataProcessor processor;       
     private ACP[] acp;
 
-    public GameObject x_bot_v2;
+    public GameObject character;
     
     private List<string> segmentNames = new List<string>
     {
@@ -49,7 +49,9 @@ public class SkeletonBuilder : MonoBehaviour
 
         SetInitialHierarchy();
     }
-        void CreateAndPositionBone(string segmentName, Vector3 barycentre, Quaternion orientation)
+
+
+    void CreateAndPositionBone(string segmentName, Vector3 barycentre, Quaternion orientation)
         {
             if (!bones.ContainsKey(segmentName))
             {
@@ -59,12 +61,22 @@ public class SkeletonBuilder : MonoBehaviour
 
             }
         }
-        
+        void AddJointBone(string parentSegmentName, string jointName, Vector3 jointPosition)
+        {
+            if (!bones.ContainsKey(jointName))
+            {
+                // Créez le joint (pivot) au niveau du genou par exemple
+                GameObject jointBone = new GameObject(jointName + "_Bone");
+                jointBone.transform.position = jointPosition;
+                jointBone.transform.SetParent(bones[parentSegmentName], true); // Parenté à l'os de la cuisse
+                bones[jointName] = jointBone.transform;
+            }
+        }
         void SetInitialHierarchy()
         {
             // x_bot_v2 est le parent de tous les premiers bones
-            bones["pelvis"].SetParent(x_bot_v2.transform, true);
-            bones["buste"].SetParent(x_bot_v2.transform, true);
+            bones["pelvis"].SetParent(character.transform, true);
+            bones["buste"].SetParent(character.transform, true);
             
             // PELVIS
             GameObject.Find("pelvis").transform.SetParent(bones["pelvis"], true);
@@ -86,12 +98,19 @@ public class SkeletonBuilder : MonoBehaviour
             
             // BUSTE
             GameObject.Find("buste").transform.SetParent(bones["buste"], true);
-            GameObject.Find("arm_r").transform.SetParent(bones["arm_r"], true);
-            GameObject.Find("arm_l").transform.SetParent(bones["arm_l"], true);
+            GameObject.Find("arm_upper_l").transform.SetParent(bones["arm_upper_l"], true);
+            GameObject.Find("arm_upper_r").transform.SetParent(bones["arm_upper_r"], true);
             GameObject.Find("head").transform.SetParent(bones["head"], true);
             
-            bones["arm_r"].SetParent(GameObject.Find("buste").transform, true);
-            bones["arm_l"].SetParent(GameObject.Find("buste").transform, true);
+            bones["arm_upper_l"].SetParent(GameObject.Find("buste").transform, true);
+            bones["arm_upper_r"].SetParent(GameObject.Find("buste").transform, true);
+            
+            bones["arm_lower_l"].SetParent(GameObject.Find("arm_upper_l").transform, true);
+            bones["arm_lower_r"].SetParent(GameObject.Find("arm_upper_r").transform, true);
+            
+            GameObject.Find("arm_lower_l").transform.SetParent(bones["arm_lower_l"], true);
+            GameObject.Find("arm_lower_r").transform.SetParent(bones["arm_lower_r"], true);
+            
             bones["head"].SetParent(GameObject.Find("buste").transform, true);
         }
 }
