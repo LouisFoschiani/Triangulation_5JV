@@ -354,6 +354,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   bonePrefab: {fileID: 7498044486419068868, guid: a525d5edd9985a54caec2afec0f5d232, type: 3}
+  x_bot_v2: {fileID: 3683594006148795812}
 --- !u!23 &6887748603008998
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -478,7 +479,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 9157958046457458354}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalRotation: {x: 0.000000021855694, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
@@ -486,7 +487,7 @@ Transform:
   - {fileID: 1395157479678409347}
   - {fileID: 670266047453852305}
   - {fileID: 8515526790521921336}
-  m_Father: {fileID: 5122276654385511967}
+  m_Father: {fileID: 4059169983474800414}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!23 &1477403601346928551
 MeshRenderer:
@@ -835,6 +836,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 5122276654385511967}
+  - {fileID: 1434216196308410131}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!23 &4082212970721042903
@@ -978,7 +980,6 @@ Transform:
   m_Children:
   - {fileID: 143977745967974349}
   - {fileID: 8513950058586220308}
-  - {fileID: 1434216196308410131}
   m_Father: {fileID: 4059169983474800414}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!23 &5215661327268387405

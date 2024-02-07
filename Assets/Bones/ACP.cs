@@ -6,6 +6,9 @@ public class ACP : MonoBehaviour
 {
     public MeshDataProcessor meshDataProcessor; // Référence à MeshDataProcessor
     private List<Vector3> eigenvectors = new List<Vector3>();
+    private SkeletonBuilder skeleton;  
+    public List<Vector3> projectedPoints = new List<Vector3>();
+
     public bool IsInitialized { get; private set; }
     
     public void init()
@@ -27,11 +30,6 @@ public class ACP : MonoBehaviour
         {
             Debug.LogError("MeshDataProcessor non attaché!");
         }
-        
-    }
-    public int GetSegmentIndex(string segmentName)
-    {
-        return meshDataProcessor.GetSegmentIndex(segmentName);
         
     }
     (float, Vector3) PowerIteration(Matrix4x4 matrix, int maxIterations, float tolerance)
@@ -82,13 +80,7 @@ public class ACP : MonoBehaviour
 
     void SaveProjectedPoints(List<Vector3> projectedPoints)
     {
-        string filePath = Path.Combine(Application.persistentDataPath, "projected_points.txt");
-        using (StreamWriter writer = new StreamWriter(filePath))
-        {
-            foreach (Vector3 point in projectedPoints)
-            {
-                writer.WriteLine(point.x + "," + point.y + "," + point.z);
-            }
-        }
+        this.projectedPoints = projectedPoints; // Stockez directement les points pour une utilisation future
     }
+
 }
