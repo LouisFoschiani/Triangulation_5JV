@@ -37,25 +37,23 @@ public class SkeletonBuilder : MonoBehaviour
         foreach (var processor in meshDataProcessor)
         {
             processor.init();
-            if (processor.GetWorldBarycenters().Count > 0)
-            {
-                Vector3 barycentre = processor.GetWorldBarycenters()[0]; // Prendre le premier barycentre de la liste
-                CreateAndPositionBone(processor.gameObject.name, barycentre);
-                //Debug.Log("OBJ : " + processor.gameObject.name + " Barycentre : " + barycentre);
-            }
+                if (processor.GetWorldBarycenters().Count > 0)
+                {
+                    Vector3 barycentre = processor.GetWorldBarycenters()[0];
+                    Vector3 eigenvector = processor.GetEigenvectors()[0];
+                    Quaternion orientation = Quaternion.LookRotation(eigenvector);
+                    
+                    CreateAndPositionBone(processor.gameObject.name, barycentre, orientation);
+                }
+        }
 
-        }
-        foreach (var acp in acp)
-        {
-            acp.init();
-        }
         SetInitialHierarchy();
     }
-        void CreateAndPositionBone(string segmentName, Vector3 barycentre)
+        void CreateAndPositionBone(string segmentName, Vector3 barycentre, Quaternion orientation)
         {
             if (!bones.ContainsKey(segmentName))
             {
-                GameObject bone = Instantiate(bonePrefab, barycentre, Quaternion.identity);
+                GameObject bone = Instantiate(bonePrefab, barycentre, orientation); // Utilisez l'orientation ici
                 bone.name = segmentName + "_Bone";
                 bones[segmentName] = bone.transform;
 
@@ -96,12 +94,4 @@ public class SkeletonBuilder : MonoBehaviour
             bones["arm_l"].SetParent(GameObject.Find("buste").transform, true);
             bones["head"].SetParent(GameObject.Find("buste").transform, true);
         }
-  
-    
-
-
-    
-
-
-
 }
