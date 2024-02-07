@@ -40,7 +40,7 @@ public class SkeletonBuilder : MonoBehaviour
             if (processor.GetWorldBarycenters().Count > 0)
             {
                 Vector3 barycentre = processor.GetWorldBarycenters()[0]; // Prendre le premier barycentre de la liste
-               CreateAndPositionBone(processor.gameObject.name, barycentre);
+                CreateAndPositionBone(processor.gameObject.name, barycentre);
                 //Debug.Log("OBJ : " + processor.gameObject.name + " Barycentre : " + barycentre);
             }
 
@@ -49,6 +49,8 @@ public class SkeletonBuilder : MonoBehaviour
         {
             acp.init();
         }
+        SetInitialHierarchy();
+    }
         void CreateAndPositionBone(string segmentName, Vector3 barycentre)
         {
             if (!bones.ContainsKey(segmentName))
@@ -62,41 +64,40 @@ public class SkeletonBuilder : MonoBehaviour
         
         void SetInitialHierarchy()
         {
-            // Définir x_bot_v2 comme parent initial de pelvis et buste
-            bones["pelvis"].SetParent(x_bot_v2.transform, false);
-            bones["buste"].SetParent(x_bot_v2.transform, false);
-    
-            // Définir les enfants de pelvis et buste
-            SetChildrenOfBone("pelvis", new List<string> { "leg_upper_l", "leg_upper_r" });
-            SetChildrenOfBone("buste", new List<string> { "head", "arm_l", "arm_r" });
-    
-            // Pour les autres segments, continuez à définir les enfants de manière similaire...
-        }
-        
-        void SetChildrenOfBone(string parentBoneName, List<string> childrenSegments)
-        {
-            foreach (string child in childrenSegments)
-            {
-                // Trouvez le GameObject du segment enfant dans la scène
-                GameObject childSegment = GameObject.Find(child);
-                if(childSegment != null)
-                {
-                    // Créez un bone pour le segment enfant
-                    CreateAndPositionBone(child + "_Bone", CalculateBarycentre(childSegment));
+            // x_bot_v2 est le parent de tous les premiers bones
+            bones["pelvis"].SetParent(x_bot_v2.transform, true);
+            bones["buste"].SetParent(x_bot_v2.transform, true);
             
-                    // Définissez le bone comme enfant du bone parent
-                    bones[child + "_Bone"].SetParent(bones[parentBoneName], false);
+            // PELVIS
+            GameObject.Find("pelvis").transform.SetParent(bones["pelvis"], true);
+            bones["leg_upper_l"].SetParent(GameObject.Find("pelvis").transform, true);
+            bones["leg_upper_r"].SetParent(GameObject.Find("pelvis").transform, true);
             
-                    // Définissez également le segment enfant comme enfant du bone parent
-                    childSegment.transform.SetParent(bones[parentBoneName], false);
-                }
-                else
-                {
-                    Debug.LogError("Segment enfant introuvable pour : " + child);
-                }
-            }
+            GameObject.Find("leg_upper_l").transform.SetParent(bones["leg_upper_l"], true);
+            GameObject.Find("leg_upper_r").transform.SetParent(bones["leg_upper_r"], true);
+            bones["leg_lower_l"].SetParent(GameObject.Find("leg_upper_l").transform, true);
+            bones["leg_lower_r"].SetParent(GameObject.Find("leg_upper_r").transform, true);
+            
+            GameObject.Find("leg_lower_l").transform.SetParent(bones["leg_lower_l"], true);
+            GameObject.Find("leg_lower_r").transform.SetParent(bones["leg_lower_r"], true);
+            
+            bones["feet_l"].SetParent(GameObject.Find("leg_lower_l").transform, true);
+            bones["feet_r"].SetParent(GameObject.Find("leg_lower_r").transform, true);
+            GameObject.Find("feet_l").transform.SetParent(bones["feet_l"], true);
+            GameObject.Find("feet_r").transform.SetParent(bones["feet_r"], true);
+            
+            // BUSTE
+            GameObject.Find("buste").transform.SetParent(bones["buste"], true);
+            GameObject.Find("arm_r").transform.SetParent(bones["arm_r"], true);
+            GameObject.Find("arm_l").transform.SetParent(bones["arm_l"], true);
+            GameObject.Find("head").transform.SetParent(bones["head"], true);
+            
+            bones["arm_r"].SetParent(GameObject.Find("buste").transform, true);
+            bones["arm_l"].SetParent(GameObject.Find("buste").transform, true);
+            bones["head"].SetParent(GameObject.Find("buste").transform, true);
         }
-    }
+  
+    
 
 
     
