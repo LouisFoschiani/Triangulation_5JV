@@ -32,12 +32,13 @@ public class SkeletonBuilder : MonoBehaviour
                     Vector3 barycentre = processor.GetWorldBarycenters()[0];
                     Vector3 eigenvector = processor.GetEigenvectors()[0];
                     Quaternion orientation = Quaternion.LookRotation(eigenvector);
-                    //CreateAndPositionBone(processor.gameObject.name, barycentre, orientation);
+                    CreateAndPositionBone(processor.gameObject.name, barycentre, orientation);
                     AddJointBone(processor.gameObject.name, processor.BMin, processor.CMax, orientation, barycentre);
                 }
         }
 
         SetInitialHierarchy();
+        SetInitialHierarchyBaryCenter();
     }
 
 
@@ -55,8 +56,8 @@ public class SkeletonBuilder : MonoBehaviour
         {
             //Debug.Log("Mesh : "+parentSegmentName+" Bmin : "+ BMin);
             //Debug.Log("Mesh : "+parentSegmentName+" Cmax : "+ CMax);
-            List<string> allowedSegments2 = new List<string> { "pelvis","buste","leg_upper_l","leg_lower_l" };
-            List<string> allowedSegments1 = new List<string> { "pelvis","buste","head","arm_lower_r","arm_lower_l","arm_upper_r","arm_upper_l","leg_upper_r","leg_lower_r" };
+            List<string> allowedSegments2 = new List<string> { "pelvis","leg_upper_l","leg_lower_l" };
+            List<string> allowedSegments1 = new List<string> { "pelvis","head","arm_lower_r","arm_lower_l","arm_upper_r","arm_upper_l","leg_upper_r","leg_lower_r" };
             
             if (!joints.ContainsKey(parentSegmentName + "_Joint_1") && allowedSegments1.Contains(parentSegmentName))
             {
@@ -68,7 +69,7 @@ public class SkeletonBuilder : MonoBehaviour
             // Créer le deuxième joint
             if (!joints.ContainsKey(parentSegmentName + "_Joint_2") && allowedSegments2.Contains(parentSegmentName))
             {
-                GameObject jointBone2 = Instantiate(jointPrefab, CMax+ barycentre, orientation);
+                GameObject jointBone2 = Instantiate(jointPrefab, CMax + barycentre, orientation);
                 jointBone2.name = parentSegmentName + "_Joint_2";
                 joints[jointBone2.name] = jointBone2.transform;
             }  
@@ -77,18 +78,18 @@ public class SkeletonBuilder : MonoBehaviour
         {
             GameObject.Find("pelvis").transform.SetParent(character.transform, true);
    
-            joints["head_Joint_1"].SetParent(joints["buste_Joint_1"], true);
+            joints["head_Joint_1"].SetParent(GameObject.Find("buste").transform, true);
             GameObject.Find("head").transform.SetParent(joints["head_Joint_1"], true);
-            joints["buste_Joint_2"].SetParent(GameObject.Find("head").transform, true);
-            GameObject.Find("buste").transform.SetParent(joints["buste_Joint_2"], true);
-            joints["buste_Joint_1"].SetParent(GameObject.Find("buste").transform, true);
-            
-            joints["arm_upper_r_Joint_1"].SetParent(joints["buste_Joint_2"], true);
+            GameObject.Find("buste").transform.SetParent(character.transform, true);
+            //joints["buste_Joint_1"].SetParent(GameObject.Find("buste").transform, true);
+            //joints["buste_Joint_2"].SetParent(GameObject.Find("buste").transform, true);
+
+            joints["arm_upper_r_Joint_1"].SetParent(GameObject.Find("buste").transform, true);
             GameObject.Find("arm_upper_r").transform.SetParent(joints["arm_upper_r_Joint_1"], true);
             joints["arm_lower_r_Joint_1"].SetParent(GameObject.Find("arm_upper_r").transform, true);
             GameObject.Find("arm_lower_r").transform.SetParent(joints["arm_lower_r_Joint_1"], true);
             
-            joints["arm_upper_l_Joint_1"].SetParent(joints["buste_Joint_2"], true);
+            joints["arm_upper_l_Joint_1"].SetParent(GameObject.Find("buste").transform, true);
             GameObject.Find("arm_upper_l").transform.SetParent(joints["arm_upper_l_Joint_1"], true);
             joints["arm_lower_l_Joint_1"].SetParent(GameObject.Find("arm_upper_l").transform, true);
             GameObject.Find("arm_lower_l").transform.SetParent(joints["arm_lower_l_Joint_1"], true);
@@ -112,7 +113,7 @@ public class SkeletonBuilder : MonoBehaviour
             
         }
 
-        void SetInitialHierarchyOld()
+        void SetInitialHierarchyBaryCenter()
         {
             // x_bot_v2 est le parent de tous les premiers bones
             bones["pelvis"].SetParent(character.transform, true);
