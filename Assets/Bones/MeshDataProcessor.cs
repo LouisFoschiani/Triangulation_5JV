@@ -9,9 +9,9 @@ public class MeshDataProcessor : MonoBehaviour
     public List<Vector3> worldBarycenters = new List<Vector3>();
     
     private List<Vector3> eigenvectors = new List<Vector3>();
-    public List<Vector3> projectedPoints = new List<Vector3>();
-
-    public bool IsInitialized { get; private set; }
+    public Vector3 BMin;
+    public Vector3 CMax;
+    public Vector3 worldBarycenter;
     public void init()
     {
         MeshFilter meshFilter = GetComponent<MeshFilter>();
@@ -22,86 +22,85 @@ public class MeshDataProcessor : MonoBehaviour
         }
         Mesh mesh = meshFilter.mesh;
         vertices = new List<Vector3>(mesh.vertices);
+        worldBarycenter = Vector3.zero;
 
-        Vector3 localBarycenter = CalculateBarycenter(vertices);
-        List<Vector3> centeredVertices = CenterVertices(vertices, localBarycenter);
-        covarianceMatrix = CalculateCovarianceMatrix(centeredVertices);
+        for (int i = 0; i < vertices.Count; i++)
+        {
+            worldBarycenter += vertices[i];
+        }
+        worldBarycenter /= vertices.Count;
 
-        Vector3 worldBarycenter = transform.TransformPoint(localBarycenter);
+        for (int i = 0; i < vertices.Count; i++)
+        {
+            vertices[i] -= worldBarycenter;
+        }
+        
+        
+        worldBarycenter = transform.TransformPoint(worldBarycenter);
         worldBarycenters.Add(worldBarycenter);
-        
-        IsInitialized = true;
-        covarianceMatrix = GetCovarianceMatrix();
-        (float eigenvalue, Vector3 eigenvector) = PowerIteration(covarianceMatrix, 10000, 0.00001f); // Augmentation du nombre d'itérations et réduction de la tolérance
-        //Debug.Log("Valeur propre dominante: " + eigenvalue);
-        //Debug.Log("Vecteur propre associé: " + eigenvector);
-        
-        vertices = GetVertices();
-        List<Vector3> projectedPoints = ProjectVertices(vertices, eigenvector);
-        SaveProjectedPoints(projectedPoints);
-            eigenvectors.Add(eigenvector);
 
-       
-    }
-    
-    (float, Vector3) PowerIteration(Matrix4x4 matrix, int maxIterations, float tolerance)
-    {
-        Vector3 b_k = Vector3.right;
-        Vector3 b_k1;
+        Matrix4x4 covarMat = CalculateCovarianceMatrix(vertices); 
 
-        for (int i = 0; i < maxIterations; i++)
+        Vector3 properVec = PowerIteration(covarMat).normalized; 
+
+        eigenvectors.Add(properVec);
+        
+        BMin = Vector3.Dot(vertices[0], properVec) * properVec;
+        CMax = BMin;
+        for (int i = 1; i < vertices.Count; i++)
         {
-            b_k1 = MultiplyMatrixVector(matrix, b_k);
-            b_k1.Normalize();
-
-            if (Vector3.Distance(b_k, b_k1) < tolerance)
+            Vector3 pp = Vector3.Dot(vertices[i], properVec) * properVec;
+            if (Vector3.Dot(pp, properVec) < 0)
             {
-                break;
+                if (Vector3.Distance(BMin, Vector3.zero) < Vector3.Distance(pp, Vector3.zero))
+                {
+                    BMin = pp;
+                }
             }
+            else
+            {
+                if (Vector3.Distance(CMax, Vector3.zero) < Vector3.Distance(pp, Vector3.zero))
+                {
+                    CMax = pp;
+                }
+            }
+        }
+        BMin = transform.TransformPoint(BMin);
+        CMax = transform.TransformPoint(CMax);
+    }
 
-            b_k = b_k1;
-        }
-        float eigenvalue = Vector3.Dot(MultiplyMatrixVector(matrix, b_k), b_k) / Vector3.Dot(b_k, b_k);
-        return (eigenvalue, b_k);
-    }
-    
-    Vector3 MultiplyMatrixVector(Matrix4x4 matrix, Vector3 vector)
+
+    Vector3 PowerIteration(Matrix4x4 covarMat)
     {
-        Vector4 temp = new Vector4(vector.x, vector.y, vector.z, 1);
-        temp = matrix * temp;
-        return new Vector3(temp.x, temp.y, temp.z);
-    }
-    List<Vector3> ProjectVertices(List<Vector3> vertices, Vector3 eigenvector)
-    {
-        List<Vector3> projectedPoints = new List<Vector3>();
-        foreach (Vector3 vertex in vertices)
+        Vector3 properVector = new Vector3(1.0f, 0.0f, 0.0f);
+        float error = 1.0f;
+        const float tolerance = 1e-6f;
+        int maxIter = 200;
+        float lambda = 0.0f;
+        int iter = 0;
+        while (error > tolerance && iter < maxIter)
         {
-            projectedPoints.Add(ProjectPointOntoEigenvector(vertex, eigenvector));
+            Vector3 y = covarMat.MultiplyVector(properVector);
+            Vector3 z = y.normalized;
+            lambda = Vector3.Dot(y, z);
+            error = Vector3.Distance(properVector, z);
+            properVector = z;
+            iter++;
         }
-        return projectedPoints;
+        return properVector;
     }
+  
     public List<Vector3> GetEigenvectors()
     {
         return eigenvectors;
     }
-    Vector3 ProjectPointOntoEigenvector(Vector3 point, Vector3 eigenvector)
-    {
-        float scalarProjection = Vector3.Dot(point, eigenvector);
-        return scalarProjection * eigenvector;
-    }
-
-    void SaveProjectedPoints(List<Vector3> projectedPoints)
-    {
-        this.projectedPoints = projectedPoints; // Stockez directement les points pour une utilisation future
-    }
-
+   
     void OnDrawGizmos()
     {
         Gizmos.color = Color.blue;
-        foreach (var barycenter in worldBarycenters)
-        {
-            Gizmos.DrawSphere(barycenter, 0.1f); // Ajustez la taille si nécessaire
-        }
+
+            Gizmos.DrawSphere(worldBarycenter, 0.1f); // Ajustez la taille si nécessaire
+        
     }
 
     public List<Vector3> GetVertices()
@@ -112,57 +111,38 @@ public class MeshDataProcessor : MonoBehaviour
     {
         return worldBarycenters;
     }
-    Vector3 CalculateBarycenter(List<Vector3> segmentVertices)
-    {
-        if (segmentVertices == null || segmentVertices.Count == 0)
-        {
-            Debug.LogError("Aucun vertex fourni pour calculer le barycentre.");
-            return Vector3.zero;
-        }
 
-        Vector3 sum = Vector3.zero;
-        foreach (Vector3 vertex in segmentVertices)
-        {
-            sum += vertex;
-        }
-        return sum / segmentVertices.Count;
-    }
-    List<Vector3> CenterVertices(List<Vector3> vertices, Vector3 barycenter)
-    {
-        List<Vector3> centeredVertices = new List<Vector3>();
-        foreach (Vector3 vertex in vertices)
-        {
-            centeredVertices.Add(vertex - barycenter);
-        }
-        return centeredVertices;
-    }
 
     Matrix4x4 CalculateCovarianceMatrix(List<Vector3> vertices)
     {
-        float sumXX = 0, sumXY = 0, sumXZ = 0;
-        float sumYY = 0, sumYZ = 0, sumZZ = 0;
-        int n = vertices.Count;
-
-        foreach (Vector3 vertex in vertices)
+        Vector3 mean = Vector3.zero;
+        foreach (var point in vertices)
         {
-            sumXX += vertex.x * vertex.x;
-            sumXY += vertex.x * vertex.y;
-            sumXZ += vertex.x * vertex.z;
-            sumYY += vertex.y * vertex.y;
-            sumYZ += vertex.y * vertex.z;
-            sumZZ += vertex.z * vertex.z;
+            mean += point;
         }
+        mean /= vertices.Count;
 
-        Matrix4x4 covarianceMatrix = new Matrix4x4();
-        covarianceMatrix[0, 0] = sumXX / (n - 1);
-        covarianceMatrix[0, 1] = covarianceMatrix[1, 0] = sumXY / (n - 1);
-        covarianceMatrix[0, 2] = covarianceMatrix[2, 0] = sumXZ / (n - 1);
-        covarianceMatrix[1, 1] = sumYY / (n - 1);
-        covarianceMatrix[1, 2] = covarianceMatrix[2, 1] = sumYZ / (n - 1);
-        covarianceMatrix[2, 2] = sumZZ / (n - 1);
+        float xx = 0, xy = 0, xz = 0, yy = 0, yz = 0, zz = 0;
+        foreach (var point in vertices)
+        {
+            Vector3 diff = point - mean;
+            xx += diff.x * diff.x;
+            xy += diff.x * diff.y;
+            xz += diff.x * diff.z;
+            yy += diff.y * diff.y;
+            yz += diff.y * diff.z;
+            zz += diff.z * diff.z;
+        }
+        int n = vertices.Count;
+        Matrix4x4 covarMat = new Matrix4x4();
+        covarMat[0, 0] = xx / n; covarMat[0, 1] = xy / n; covarMat[0, 2] = xz / n; covarMat[0, 3] = 0;
+        covarMat[1, 0] = xy / n; covarMat[1, 1] = yy / n; covarMat[1, 2] = yz / n; covarMat[1, 3] = 0;
+        covarMat[2, 0] = xz / n; covarMat[2, 1] = yz / n; covarMat[2, 2] = zz / n; covarMat[2, 3] = 0;
+        covarMat[3, 0] = 0;     covarMat[3, 1] = 0;     covarMat[3, 2] = 0;     covarMat[3, 3] = 1;
 
-        return covarianceMatrix;
+        return covarMat;
     }
+
     public Matrix4x4 GetCovarianceMatrix()
     {
         return covarianceMatrix;
