@@ -32,13 +32,13 @@ public class SkeletonBuilder : MonoBehaviour
                     Vector3 barycentre = processor.GetWorldBarycenters()[0];
                     Vector3 eigenvector = processor.GetEigenvectors()[0];
                     Quaternion orientation = Quaternion.LookRotation(eigenvector);
-                    CreateAndPositionBone(processor.gameObject.name, barycentre, orientation);
+                    //CreateAndPositionBone(processor.gameObject.name, barycentre, orientation);
                     AddJointBone(processor.gameObject.name, processor.BMin, processor.CMax, orientation, barycentre);
                 }
         }
 
         SetInitialHierarchy();
-        SetInitialHierarchyBaryCenter();
+        //SetInitialHierarchyBaryCenter();
     }
 
 
