@@ -9,8 +9,8 @@ public class MeshDataProcessor : MonoBehaviour
     public List<Vector3> worldBarycenters = new List<Vector3>();
     
     private List<Vector3> eigenvectors = new List<Vector3>();
-    public Vector3 BMin;
-    public Vector3 CMax;
+    public Vector3 min_point;
+    public Vector3 max_point;
     public Vector3 worldBarycenter;
     public void init()
     {
@@ -45,28 +45,28 @@ public class MeshDataProcessor : MonoBehaviour
 
         eigenvectors.Add(properVec);
         
-        BMin = Vector3.Dot(vertices[0], properVec) * properVec;
-        CMax = BMin;
+        min_point = Vector3.Dot(vertices[0], properVec) * properVec;
+        max_point = min_point;
         for (int i = 1; i < vertices.Count; i++)
         {
             Vector3 pp = Vector3.Dot(vertices[i], properVec) * properVec;
             if (Vector3.Dot(pp, properVec) < 0)
             {
-                if (Vector3.Distance(BMin, Vector3.zero) < Vector3.Distance(pp, Vector3.zero))
+                if (Vector3.Distance(min_point, Vector3.zero) < Vector3.Distance(pp, Vector3.zero))
                 {
-                    BMin = pp;
+                    min_point = pp;
                 }
             }
             else
             {
-                if (Vector3.Distance(CMax, Vector3.zero) < Vector3.Distance(pp, Vector3.zero))
+                if (Vector3.Distance(max_point, Vector3.zero) < Vector3.Distance(pp, Vector3.zero))
                 {
-                    CMax = pp;
+                    max_point = pp;
                 }
             }
         }
-        BMin = transform.TransformPoint(BMin);
-        CMax = transform.TransformPoint(CMax);
+        min_point = transform.TransformPoint(min_point);
+        max_point = transform.TransformPoint(max_point);
     }
 
 
