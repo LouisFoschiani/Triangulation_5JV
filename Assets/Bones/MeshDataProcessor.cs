@@ -65,8 +65,8 @@ public class MeshDataProcessor : MonoBehaviour
                 }
             }
         }
-        min_point = transform.TransformPoint(min_point);
-        max_point = transform.TransformPoint(max_point);
+        min_point = transform.TransformPoint(min_point) + worldBarycenter;
+        max_point = transform.TransformPoint(max_point) + worldBarycenter;
     }
 
 

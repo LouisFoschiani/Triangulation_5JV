@@ -85,14 +85,14 @@ public class SkeletonBuilder : MonoBehaviour
             
             if (!joints.ContainsKey(parentSegmentName + "_Joint_1") && allowedSegments1.Contains(parentSegmentName))
             {
-                GameObject jointBone = Instantiate(jointPrefab, min_point + barycentre, orientation);
+                GameObject jointBone = Instantiate(jointPrefab, min_point, orientation);
                 jointBone.name = parentSegmentName + "_Joint_1";
-                joints[jointBone.name] = jointBone.transform; 
+                joints[jointBone.name] = jointBone.transform;
             }
             
             if (!joints.ContainsKey(parentSegmentName + "_Joint_2") && allowedSegments2.Contains(parentSegmentName))
             {
-                GameObject jointBone2 = Instantiate(jointPrefab, max_point + barycentre, orientation);
+                GameObject jointBone2 = Instantiate(jointPrefab, max_point, orientation);
                 jointBone2.name = parentSegmentName + "_Joint_2";
                 joints[jointBone2.name] = jointBone2.transform;
             }  
@@ -105,7 +105,7 @@ public class SkeletonBuilder : MonoBehaviour
             GameObject.Find("head").transform.SetParent(joints["head_Joint_1"], true);
             GameObject.Find("buste").transform.SetParent(character.transform, true);
             joints["head_Joint_2"].SetParent(GameObject.Find("head").transform, true);
-
+        
             joints["arm_upper_r_Joint_1"].SetParent(GameObject.Find("buste").transform, true);
             GameObject.Find("arm_upper_r").transform.SetParent(joints["arm_upper_r_Joint_1"], true);
             joints["arm_lower_r_Joint_1"].SetParent(GameObject.Find("arm_upper_r").transform, true);
